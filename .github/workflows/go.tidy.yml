@@ -21,6 +21,7 @@ jobs:
       -
         name: Tidy
         run: |
+          go mod download github.com/golang/protobuf
           make gen
           rm -f go.sum
           go mod tidy

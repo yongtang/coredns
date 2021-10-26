@@ -22,6 +22,7 @@ jobs:
         name: Tidy
         run: |
           rm -f go.sum
+          make gen
           go mod tidy
       -
         name: Set up Git

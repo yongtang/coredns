@@ -6,7 +6,7 @@
 all: dns.pb.go
 
 dns.pb.go: dns.proto
-	protoc --go_out=plugins=grpc:. dns.proto
+	protoc --go-grpc_out=. dns.proto
 
 .PHONY: clean
 clean:

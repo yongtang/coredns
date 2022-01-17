@@ -3,13 +3,13 @@ module github.com/coredns/coredns
 go 1.16
 
 require (
-	github.com/Azure/azure-sdk-for-go v61.1.0+incompatible
+	github.com/Azure/azure-sdk-for-go v61.2.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.23
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.10
 	github.com/Azure/go-autorest/autorest/to v0.2.0 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/apparentlymart/go-cidr v1.1.0
-	github.com/aws/aws-sdk-go v1.42.30
+	github.com/aws/aws-sdk-go v1.42.35
 	github.com/coredns/caddy v1.1.1
 	github.com/dnstap/golang-dnstap v0.4.0
 	github.com/farsightsec/golang-framestream v0.3.0
@@ -21,7 +21,7 @@ require (
 	github.com/miekg/dns v1.1.45
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.4.5
-	github.com/openzipkin/zipkin-go v0.3.0
+	github.com/openzipkin/zipkin-go v0.4.0
 	github.com/oschwald/geoip2-golang v1.5.0
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/prometheus/client_golang v1.11.0

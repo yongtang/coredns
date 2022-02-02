@@ -108,6 +108,10 @@ else
 	      --data-binary "@$$asset" \
 	      "https://uploads.github.com/repos/$(GITHUB)/$(NAME)/releases/$(RELEASE)/assets?name=$${asset}" ; \
 	done )
+	@( curl -X PATCH \
+	    -H "Authorization: token ${GITHUB_ACCESS_TOKEN}" \
+            "https://api.github.com/repos/$(GITHUB)/$(NAME)/releases/$(RELEASE)" \
+            -d '{"drafe":"false"}' )
 endif
 
 .PHONY: version

@@ -111,7 +111,7 @@ else
 	@( curl -X PATCH \
 	    -H "Authorization: token ${GITHUB_ACCESS_TOKEN}" \
             "https://api.github.com/repos/$(GITHUB)/$(NAME)/releases/$(RELEASE)" \
-            -d '{"drafe":"false"}' )
+            -d '{"draft":"false"}' )
 endif
 
 .PHONY: version

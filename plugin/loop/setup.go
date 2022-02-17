@@ -71,6 +71,9 @@ func parse(c *caddy.Controller) (*Loop, error) {
 
 		if len(c.ServerBlockKeys) > 0 {
 			zones = plugin.Host(c.ServerBlockKeys[0]).NormalizeExact()
+			if len(zones) == 0 {
+				return nil, fmt.Errorf("unable to normalize '%s'", c.ServerBlockKeys[0])
+			}
 		}
 	}
 	return New(zones[0]), nil

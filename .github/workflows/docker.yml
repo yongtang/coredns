@@ -9,6 +9,8 @@ on:
         description: "Release (e.g., v1.9.0)"
         required: true
 
+permissions: read-all
+
 jobs:
   docker-release:
     runs-on: ubuntu-latest

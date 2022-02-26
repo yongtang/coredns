@@ -1,5 +1,6 @@
 name: Go Coverage
 on: [pull_request]
+permissions: read-all
 jobs:
   test:
     name: Coverage

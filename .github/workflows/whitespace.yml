@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: '22 10 * * 2'
 
+permissions: read-all
+
 jobs:
   fix:
     runs-on: ubuntu-latest

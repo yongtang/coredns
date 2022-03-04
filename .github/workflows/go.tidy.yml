@@ -9,8 +9,6 @@ permissions: read-all
 jobs:
   fix:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Install Go
         uses: actions/setup-go@bfdd3570ce990073878bf10f6b2d79082de49492
@@ -35,6 +33,8 @@ jobs:
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
 
       - name: Commit and push changes
+        permissions:
+          contents: write
         run: |
           git add .
           if output=$(git status --porcelain) && [ ! -z "$output" ]; then

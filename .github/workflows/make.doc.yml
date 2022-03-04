@@ -9,8 +9,6 @@ permissions: read-all
 jobs:
   fix:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
@@ -34,6 +32,8 @@ jobs:
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
 
       - name: Commit and push changes
+        permissions:
+          contents: write
         run: |
           git add .
           if output=$(git status --porcelain) && [ ! -z "$output" ]; then

@@ -1,7 +1,6 @@
 package dnsserver
 
 import (
-	"flag"
 	"fmt"
 	"net"
 	"time"
@@ -9,6 +8,7 @@ import (
 	"github.com/coredns/caddy"
 	"github.com/coredns/caddy/caddyfile"
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/flag"
 	"github.com/coredns/coredns/plugin/pkg/parse"
 	"github.com/coredns/coredns/plugin/pkg/transport"
 
@@ -20,8 +20,10 @@ const serverType = "dns"
 // Any flags defined here, need to be namespaced to the serverType other
 // wise they potentially clash with other server types.
 func init() {
-	flag.StringVar(&Port, serverType+".port", DefaultPort, "Default port")
-	flag.StringVar(&Port, "p", DefaultPort, "Default port")
+	f := flag.FlagSet()
+
+	f.StringVar(&Port, serverType+".port", DefaultPort, "Default port")
+	f.StringVar(&Port, "p", DefaultPort, "Default port")
 
 	caddy.RegisterServerType(serverType, caddy.ServerType{
 		Directives: func() []string { return Directives },

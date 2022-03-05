@@ -2,7 +2,6 @@
 package coremain
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/coredns/caddy"
 	"github.com/coredns/coredns/core/dnsserver"
+	"github.com/coredns/coredns/plugin/pkg/flag"
 )
 
 func init() {
@@ -19,11 +19,13 @@ func init() {
 	caddy.Quiet = true // don't show init stuff from caddy
 	setVersion()
 
-	flag.StringVar(&conf, "conf", "", "Corefile to load (default \""+caddy.DefaultConfigFile+"\")")
-	flag.BoolVar(&plugins, "plugins", false, "List installed plugins")
-	flag.StringVar(&caddy.PidFile, "pidfile", "", "Path to write pid file")
-	flag.BoolVar(&version, "version", false, "Show version")
-	flag.BoolVar(&dnsserver.Quiet, "quiet", false, "Quiet mode (no initialization output)")
+	f := flag.FlagSet()
+
+	f.StringVar(&conf, "conf", "", "Corefile to load (default \""+caddy.DefaultConfigFile+"\")")
+	f.BoolVar(&plugins, "plugins", false, "List installed plugins")
+	f.StringVar(&caddy.PidFile, "pidfile", "", "Path to write pid file")
+	f.BoolVar(&version, "version", false, "Show version")
+	f.BoolVar(&dnsserver.Quiet, "quiet", false, "Quiet mode (no initialization output)")
 
 	caddy.RegisterCaddyfileLoader("flag", caddy.LoaderFunc(confLoader))
 	caddy.SetDefaultCaddyfileLoader("default", caddy.LoaderFunc(defaultLoader))
@@ -35,10 +37,13 @@ func init() {
 // Run is CoreDNS's main() function.
 func Run() {
 	caddy.TrapSignals()
-	flag.Parse()
 
-	if len(flag.Args()) > 0 {
-		mustLogFatal(fmt.Errorf("extra command line arguments: %s", flag.Args()))
+	f := flag.FlagSet()
+
+	f.Parse(os.Args[1:])
+
+	if len(f.Args()) > 0 {
+		mustLogFatal(fmt.Errorf("extra command line arguments: %s", f.Args()))
 	}
 
 	log.SetOutput(os.Stdout)

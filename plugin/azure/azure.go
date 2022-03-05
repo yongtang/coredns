@@ -310,7 +310,6 @@ func (h *Azure) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 	if zone == "" {
 		return plugin.NextOrFailure(h.Name(), h.Next, ctx, w, r)
 	}
-
 	zones, ok := h.zones[zone] // ok true if we are authoritative for the zone.
 	if !ok || zones == nil {
 		return dns.RcodeServerFailure, nil

@@ -30,7 +30,7 @@ require (
 	google.golang.org/api v0.71.0
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
-	gopkg.in/DataDog/dd-trace-go.v1 v1.36.2
+	gopkg.in/DataDog/dd-trace-go.v1 v1.38.0
 	k8s.io/api v0.23.4
 	k8s.io/apimachinery v0.23.4
 	k8s.io/client-go v0.23.4
@@ -85,7 +85,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/tinylib/msgp v1.1.2 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.2 // indirect
 	go.opencensus.io v0.23.0 // indirect

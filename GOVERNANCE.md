@@ -56,7 +56,7 @@ or by sending an email to `maintainers@coredns.io`.
 In general, we prefer that technical issues and maintainer membership are amicably worked out between the persons involved.
 If a dispute cannot be decided independently, get a third-party maintainer (e.g. a mutual contact with some background
 on the issue, but not involved in the conflict) to intercede.
-If a dispute still cannot be decided, a vote can be initiated though we don't expect votes will be done very freuently.
+If a dispute still cannot be decided, a vote can be initiated though we don't expect votes will be done very frequently.
 
 If a vote results in a change in GitHub repo (e.g., CODEOWNERS, GOVERNANCE.md, etc.), a PR can be initiated.
 If a vote does not result in a change in GitHub repo, a GitHub issue can be initiated.

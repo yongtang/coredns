@@ -10,22 +10,6 @@ The CoreDNS community adheres to the following principles:
 - Merit: Ideas and contributions are accepted according to their technical merit and alignment with
   project objectives, scope, and design principles.
 
-## Project Lead
-
-The CoreDNS project has a project lead.
-
-A project lead in CoreDNS is
-a single person that has a final say in any decision concerning the CoreDNS project.
-
-The term of the project lead is one year, with no term limit restriction.
-
-The project lead is elected by CoreDNS maintainers
-according to an individual's technical merit to CoreDNS project.
-
-The current project lead is identified in the [CODEOWNERS](CODEOWNERS) file with the string
-`project lead` and the term behind the name in a comment at the top of the file.
-
-
 ## Expectations from Maintainers
 
 Every one carries water...
@@ -57,31 +41,11 @@ The CoreDNS organization will never forcefully remove a current Maintainer, unle
 fails to meet the principles of CoreDNS community,
 or adhere to the [Code of Conduct](CODE-OF-CONDUCT.md).
 
-## Changes in Project Lead
-
-Changes in project lead or term is initiated by opening a github PR.
-
-Anyone from CoreDNS community can vote on the PR with either +1 or -1.
-
-Only the following votes are binding:
-1) Any maintainer that has been listed in the [CODEOWNERS](CODEOWNERS) file before the PR is opened.
-2) Any maintainer from an organization may cast the vote for that organization. However, no organization
-should have more binding votes than 1/5 of the total number of maintainers defined in 1).
-
-The PR should only be opened no earlier than 6 weeks before the end of the project lead's term.
-The PR should be kept open for no less than 4 weeks. The PR can only be merged after the end of the
-last project lead's term, with more +1 than -1 in the binding votes.
-
-When there are conflicting PRs about changes in project lead, the PR with the most binding +1 votes is merged.
-
-The project lead can volunteer to step down.
-
 ## Changes in Project Governance
 
 Changes in project governance (GOVERNANCE.md) could be initiated by opening a github PR.
-The PR should only be opened no earlier than 6 weeks before the end of the project lead's term.
-The PR should be kept open for no less than 4 weeks. The PR can only be merged follow the same
-voting process as in `Changes in Project Lead`.
+The PR should be kept open for no less than 4 weeks. The PR can only be merged following the voting rules
+specified in the decision making process.
 
 ## Decision making process
 
@@ -92,12 +56,28 @@ or by sending an email to `maintainers@coredns.io`.
 In general, we prefer that technical issues and maintainer membership are amicably worked out between the persons involved.
 If a dispute cannot be decided independently, get a third-party maintainer (e.g. a mutual contact with some background
 on the issue, but not involved in the conflict) to intercede.
-If a dispute still cannot be decided, the project lead has the final say to decide an issue.
+If a dispute still cannot be decided, a vote can be initiated though we don't expect votes will be done very freuently.
 
-Decision making process should be transparent to adhere to
-the principles of CoreDNS project.
+If a vote results in a change in GitHub repo (e.g., CODEOWNERS, GOVERNANCE.md, etc.), a PR can be initiated.
+If a vote does not result in a change in GitHub repo, a GitHub issue can be initiated.
 
-All proposals, ideas, and decisions by maintainers or the project lead
+Anyone from CoreDNS community can vote on the PR with either +1 or -1.
+
+Only the following votes are binding:
+1) Any maintainer that has been listed in the [CODEOWNERS](CODEOWNERS) file before the PR is opened.
+2) Any maintainer from an organization may cast the vote for that organization. However, no organization
+should have more binding votes than 1/5 of the total number of maintainers defined in 1).
+
+The PR or issue should be kept open for no less than 4 weeks.
+
+When there are conflicting PRs, the PR with the most binding +1 votes is merged.
+
+Issues intended for voting, are considered as a project decision with more binding +1 votes than -1 votes,
+after no less than 4 weeks.
+
+Decision making process should be transparent to adhere to the principles of CoreDNS project.
+
+All proposals, ideas, and decisions by maintainers
 should either be part of a github issue or PR, or be sent to `maintainers@coredns.io`.
 
 ## Github Project Administration

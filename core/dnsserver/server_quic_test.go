@@ -374,7 +374,7 @@ func TestReadDOQMessage(t *testing.T) {
 }
 
 func TestDoQWriter(t *testing.T) {
-	mockStream := &mockQUICStream{}
+	mockStream := &quic.Stream{}
 	localAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:53")
 	remoteAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:12345")
 
@@ -473,34 +473,3 @@ func TestAddPrefix(t *testing.T) {
 		})
 	}
 }
-
-type mockQUICStream struct {
-	writtenData []byte
-	closed      bool
-}
-
-func (m *mockQUICStream) Write(data []byte) (int, error) {
-	m.writtenData = append(m.writtenData, data...)
-	return len(data), nil
-}
-
-func (m *mockQUICStream) Read([]byte) (int, error) { return 0, io.EOF }
-
-func (m *mockQUICStream) Close() error {
-	m.closed = true
-	return nil
-}
-
-func (m *mockQUICStream) reset() {
-	m.writtenData = nil
-	m.closed = false
-}
-
-// Minimal implementation of other required methods
-func (m *mockQUICStream) StreamID() quic.StreamID          { return 0 }
-func (m *mockQUICStream) SetReadDeadline(time.Time) error  { return nil }
-func (m *mockQUICStream) SetWriteDeadline(time.Time) error { return nil }
-func (m *mockQUICStream) SetDeadline(time.Time) error      { return nil }
-func (m *mockQUICStream) Context() context.Context         { return context.Background() }
-func (m *mockQUICStream) CancelWrite(quic.StreamErrorCode) {}
-func (m *mockQUICStream) CancelRead(quic.StreamErrorCode)  {}

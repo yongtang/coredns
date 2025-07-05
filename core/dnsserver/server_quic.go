@@ -129,7 +129,7 @@ func (s *ServerQUIC) ServeQUIC() error {
 
 // serveQUICConnection handles a new QUIC connection. It waits for new streams
 // and passes them to serveQUICStream.
-func (s *ServerQUIC) serveQUICConnection(conn quic.Connection) {
+func (s *ServerQUIC) serveQUICConnection(conn *quic.Conn) {
 	for {
 		// In DoQ, one query consumes one stream.
 		// The client MUST select the next available client-initiated bidirectional
@@ -147,14 +147,14 @@ func (s *ServerQUIC) serveQUICConnection(conn quic.Connection) {
 
 		// Use a bounded worker pool
 		s.streamProcessPool <- struct{}{} // Acquire a worker slot, may block
-		go func(st quic.Stream, cn quic.Connection) {
+		go func(st *quic.Stream, cn *quic.Conn) {
 			defer func() { <-s.streamProcessPool }() // Release worker slot
 			s.serveQUICStream(st, cn)
 		}(stream, conn)
 	}
 }
 
-func (s *ServerQUIC) serveQUICStream(stream quic.Stream, conn quic.Connection) {
+func (s *ServerQUIC) serveQUICStream(stream *quic.Stream, conn *quic.Conn) {
 	buf, err := readDOQMessage(stream)
 
 	// io.EOF does not really mean that there's any error, it is just
@@ -249,7 +249,7 @@ func (s *ServerQUIC) Serve(l net.Listener) error { return nil }
 func (s *ServerQUIC) Listen() (net.Listener, error) { return nil, nil }
 
 // closeQUICConn quietly closes the QUIC connection.
-func (s *ServerQUIC) closeQUICConn(conn quic.Connection, code quic.ApplicationErrorCode) {
+func (s *ServerQUIC) closeQUICConn(conn *quic.Conn, code quic.ApplicationErrorCode) {
 	if conn == nil {
 		return
 	}

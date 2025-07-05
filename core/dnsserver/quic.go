@@ -11,7 +11,7 @@ import (
 type DoQWriter struct {
 	localAddr  net.Addr
 	remoteAddr net.Addr
-	stream     quic.Stream
+	stream     *quic.Stream
 	Msg        *dns.Msg
 }
 

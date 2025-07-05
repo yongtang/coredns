@@ -123,7 +123,7 @@ func TestDoQWriter_Write(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStream := &mockQuicStream{writer: tt.streamWriter}
+			mockStream := &quic.Stream{writer: tt.streamWriter}
 			writer := &DoQWriter{stream: mockStream}
 
 			n, err := writer.Write(tt.input)

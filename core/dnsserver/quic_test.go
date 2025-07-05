@@ -56,40 +56,6 @@ func TestDoQWriter_ResponseWriterMethods(t *testing.T) {
 	}
 }
 
-// mockQuicStream is a mock implementation of quic.Stream for testing.
-type mockQuicStream struct {
-	writer func(p []byte) (n int, err error)
-	closer func() error
-	closed bool
-	data   []byte
-}
-
-func (m *mockQuicStream) Write(p []byte) (n int, err error) {
-	m.data = append(m.data, p...)
-	if m.writer != nil {
-		return m.writer(p)
-	}
-	return len(p), nil
-}
-
-func (m *mockQuicStream) Close() error {
-	m.closed = true
-	if m.closer != nil {
-		return m.closer()
-	}
-	return nil
-}
-
-// Required by quic.Stream interface, but not used in these tests
-func (m *mockQuicStream) Read(p []byte) (n int, err error)      { return 0, nil }
-func (m *mockQuicStream) CancelRead(code quic.StreamErrorCode)  {}
-func (m *mockQuicStream) CancelWrite(code quic.StreamErrorCode) {}
-func (m *mockQuicStream) SetReadDeadline(t time.Time) error     { return nil }
-func (m *mockQuicStream) SetWriteDeadline(t time.Time) error    { return nil }
-func (m *mockQuicStream) SetDeadline(t time.Time) error         { return nil }
-func (m *mockQuicStream) StreamID() quic.StreamID               { return 0 }
-func (m *mockQuicStream) Context() context.Context              { return nil }
-
 func TestDoQWriter_Write(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -153,7 +119,7 @@ func TestDoQWriter_WriteMsg(t *testing.T) {
 	tests := []struct {
 		name         string
 		msg          *dns.Msg
-		mockStream   *mockQuicStream
+		mockStream   *quic.Stream
 		expectErr    bool
 		expectClosed bool
 		expectedData []byte // Expected data written to stream (packed msg with prefix)
@@ -162,14 +128,14 @@ func TestDoQWriter_WriteMsg(t *testing.T) {
 		{
 			name:         "successful write and close",
 			msg:          newMsg(),
-			mockStream:   &mockQuicStream{},
+			mockStream:   &quic.Stream{},
 			expectErr:    false,
 			expectClosed: true,
 		},
 		{
 			name:         "msg.Pack() error",
 			msg:          new(dns.Msg),
-			mockStream:   &mockQuicStream{},
+			mockStream:   &quic.Stream{},
 			expectErr:    true,
 			packErr:      true,  // We'll make msg.Pack() fail by corrupting the msg or using a mock
 			expectClosed: false, // Close should not be called if Pack fails
@@ -177,7 +143,7 @@ func TestDoQWriter_WriteMsg(t *testing.T) {
 		{
 			name: "stream write error",
 			msg:  newMsg(),
-			mockStream: &mockQuicStream{
+			mockStream: &quic.Stream{
 				writer: func(p []byte) (n int, err error) {
 					return 0, errors.New("stream write failed")
 				},
@@ -188,7 +154,7 @@ func TestDoQWriter_WriteMsg(t *testing.T) {
 		{
 			name: "stream close error",
 			msg:  newMsg(),
-			mockStream: &mockQuicStream{
+			mockStream: &quic.Stream{
 				closer: func() error {
 					return errors.New("stream close failed")
 				},
@@ -229,17 +195,17 @@ func TestDoQWriter_WriteMsg(t *testing.T) {
 func TestDoQWriter_Close(t *testing.T) {
 	tests := []struct {
 		name       string
-		mockStream *mockQuicStream
+		mockStream *quic.Stream
 		expectErr  bool
 	}{
 		{
 			name:       "successful close",
-			mockStream: &mockQuicStream{},
+			mockStream: &quic.Stream{},
 			expectErr:  false,
 		},
 		{
 			name: "stream close error",
-			mockStream: &mockQuicStream{
+			mockStream: &quic.Stream{
 				closer: func() error {
 					return errors.New("stream close error")
 				},

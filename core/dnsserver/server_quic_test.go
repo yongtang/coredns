@@ -22,15 +22,15 @@ import (
 type tsigStatusCheckPlugin struct {
 	t      *testing.T
 	check  func(*testing.T, error)
-	called *bool
+	called chan struct{}
 }
 
 func (p tsigStatusCheckPlugin) Name() string { return "tsig-status-check" }
 
-func (p tsigStatusCheckPlugin) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (p tsigStatusCheckPlugin) ServeDNS(_ context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	p.t.Helper()
 	if p.called != nil {
-		*p.called = true
+		p.called <- struct{}{}
 	}
 	p.check(p.t, w.TsigStatus())
 
@@ -503,12 +503,13 @@ func TestServerQUIC_ServeQUIC_TSIGBadSigSetsTsigStatus(t *testing.T) {
 	const clientSecret = "MTIzNDU2Nzg5MDEyMzQ1Ng=="
 	const serverSecret = "QUJDREVGR0hJSktMTU5PUA=="
 
-	called := false
+	called := make(chan struct{}, 1)
 
 	config := testConfig("quic", tsigStatusCheckPlugin{
 		t:      t,
-		called: &called,
+		called: called,
 		check: func(t *testing.T, got error) {
+			t.Helper()
 			if got == nil {
 				t.Fatal("TsigStatus() = nil, want non-nil for bad TSIG MAC")
 			}
@@ -583,7 +584,9 @@ func TestServerQUIC_ServeQUIC_TSIGBadSigSetsTsigStatus(t *testing.T) {
 		t.Fatalf("response unpack failed: %v", err)
 	}
 
-	if !called {
+	select {
+	case <-called:
+	case <-time.After(5 * time.Second):
 		t.Fatal("ServeDNS() was not called")
 	}
 }
@@ -630,5 +633,91 @@ func mustMakeQUICClientTLSConfig() *tls.Config {
 	return &tls.Config{
 		InsecureSkipVerify: true,
 		NextProtos:         []string{"doq"},
+	}
+}
+
+func TestServerQUIC_ServeQUIC_TSIGValidSigLeavesTsigStatusNil(t *testing.T) {
+	const keyName = "tsig-key."
+	const secret = "MTIzNDU2Nzg5MDEyMzQ1Ng=="
+
+	called := make(chan struct{}, 1)
+
+	config := testConfig("quic", tsigStatusCheckPlugin{
+		t:      t,
+		called: called,
+		check: func(t *testing.T, got error) {
+			t.Helper()
+			if got != nil {
+				t.Fatalf("TsigStatus() = %v, want nil for valid TSIG MAC", got)
+			}
+		},
+	})
+	config.TLSConfig = mustMakeQUICServerTLSConfig(t)
+
+	server, err := NewServerQUIC(transport.QUIC+"://127.0.0.1:0", []*Config{config})
+	if err != nil {
+		t.Fatalf("NewServerQUIC() failed: %v", err)
+	}
+
+	server.tsigSecret = map[string]string{
+		keyName: secret,
+	}
+
+	pc, err := server.ListenPacket()
+	if err != nil {
+		t.Fatalf("ListenPacket() failed: %v", err)
+	}
+	defer pc.Close()
+
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- server.ServeQUIC()
+	}()
+
+	defer func() {
+		_ = server.Stop()
+		select {
+		case <-serveErrCh:
+		case <-time.After(2 * time.Second):
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	conn, err := quic.DialAddr(ctx, pc.LocalAddr().String(), mustMakeQUICClientTLSConfig(), &quic.Config{})
+	if err != nil {
+		t.Fatalf("quic.DialAddr() failed: %v", err)
+	}
+	defer conn.CloseWithError(DoQCodeNoError, "")
+
+	stream, err := conn.OpenStreamSync(ctx)
+	if err != nil {
+		t.Fatalf("OpenStreamSync() failed: %v", err)
+	}
+
+	wire := mustPackSignedTSIGQuery(t, keyName, secret, time.Now().Unix())
+
+	if _, err := stream.Write(AddPrefix(wire)); err != nil {
+		t.Fatalf("stream.Write() failed: %v", err)
+	}
+	if err := stream.Close(); err != nil {
+		t.Fatalf("stream.Close() failed: %v", err)
+	}
+
+	respWire, err := readDOQMessage(stream)
+	if err != nil {
+		t.Fatalf("readDOQMessage() failed: %v", err)
+	}
+
+	resp := new(dns.Msg)
+	if err := resp.Unpack(respWire); err != nil {
+		t.Fatalf("response unpack failed: %v", err)
+	}
+
+	select {
+	case <-called:
+	case <-time.After(5 * time.Second):
+		t.Fatal("ServeDNS() was not called")
 	}
 }

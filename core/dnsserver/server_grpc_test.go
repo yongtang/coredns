@@ -24,7 +24,7 @@ type tsigStatusCheckPlugin struct {
 
 func (p tsigStatusCheckPlugin) Name() string { return "tsig-status-check" }
 
-func (p tsigStatusCheckPlugin) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (p tsigStatusCheckPlugin) ServeDNS(_ context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	p.t.Helper()
 	if p.called != nil {
 		*p.called = true
@@ -511,6 +511,7 @@ func TestServergRPC_Query_TSIGBadSigSetsTsigStatus(t *testing.T) {
 			t:      t,
 			called: &called,
 			check: func(t *testing.T, got error) {
+				t.Helper()
 				if got == nil {
 					t.Fatal("TsigStatus() = nil, want non-nil for bad TSIG MAC")
 				}
@@ -561,6 +562,7 @@ func TestServergRPC_Query_TSIGBadTimeSetsTsigStatus(t *testing.T) {
 			t:      t,
 			called: &called,
 			check: func(t *testing.T, got error) {
+				t.Helper()
 				if !errors.Is(got, dns.ErrTime) {
 					t.Fatalf("TsigStatus() = %v, want %v", got, dns.ErrTime)
 				}

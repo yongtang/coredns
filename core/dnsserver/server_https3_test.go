@@ -2,10 +2,16 @@ package dnsserver
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
+
+	"github.com/coredns/coredns/plugin"
 
 	"github.com/miekg/dns"
 )
@@ -137,5 +143,122 @@ func TestNewServerHTTPS3ZeroLimits(t *testing.T) {
 	// When maxStreams is 0, quicConfig should not set MaxIncomingStreams (uses QUIC default)
 	if server.quicConfig.MaxIncomingStreams != 0 {
 		t.Errorf("Expected quicConfig.MaxIncomingStreams = 0 (QUIC default), got %d", server.quicConfig.MaxIncomingStreams)
+	}
+}
+
+type tsigStatusPluginHTTPS3 struct{}
+
+func (p *tsigStatusPluginHTTPS3) ServeDNS(_ context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	m := new(dns.Msg)
+	m.SetReply(r)
+	m.Authoritative = true
+
+	switch {
+	case r.IsTsig() == nil:
+		m.Rcode = dns.RcodeRefused
+	case w.TsigStatus() != nil:
+		m.Rcode = dns.RcodeNotAuth
+	default:
+		m.Rcode = dns.RcodeSuccess
+	}
+
+	if err := w.WriteMsg(m); err != nil {
+		return dns.RcodeServerFailure, err
+	}
+	return dns.RcodeSuccess, nil
+}
+
+func (p *tsigStatusPluginHTTPS3) Name() string { return "tsig_status_https3" }
+
+func testConfigWithTSIGStatusPluginHTTPS3() *Config {
+	c := &Config{
+		Zone:        "example.com.",
+		Transport:   "https3",
+		TLSConfig:   &tls.Config{},
+		ListenHosts: []string{"127.0.0.1"},
+		Port:        "443",
+		TsigSecret: map[string]string{
+			"tsig-key.": "MTIzNA==",
+		},
+	}
+	c.AddPlugin(func(_next plugin.Handler) plugin.Handler { return &tsigStatusPluginHTTPS3{} })
+	return c
+}
+
+func testServerHTTPS3Msg(t *testing.T, cfg *Config, req *dns.Msg) *dns.Msg {
+	t.Helper()
+
+	s, err := NewServerHTTPS3("127.0.0.1:443", []*Config{cfg})
+	if err != nil {
+		t.Fatal("could not create HTTPS3 server:", err)
+	}
+
+	buf, err := req.Pack()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r := httptest.NewRequest(http.MethodPost, "/dns-query", bytes.NewReader(buf))
+	r.RemoteAddr = "127.0.0.1:12345"
+	w := httptest.NewRecorder()
+
+	s.ServeHTTP(w, r)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected HTTP status: got %d", res.StatusCode)
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m := new(dns.Msg)
+	if err := m.Unpack(body); err != nil {
+		t.Fatal(err)
+	}
+	return m
+}
+
+func forgedTSIGMsgHTTPS3() *dns.Msg {
+	m := new(dns.Msg)
+	m.SetQuestion("example.com.", dns.TypeA)
+
+	m.Extra = append(m.Extra, &dns.TSIG{
+		Hdr: dns.RR_Header{
+			Name:   "bogus-key.",
+			Rrtype: dns.TypeTSIG,
+			Class:  dns.ClassANY,
+			Ttl:    0,
+		},
+		Algorithm:  dns.HmacSHA256,
+		TimeSigned: uint64(time.Now().Unix()),
+		Fudge:      300,
+		MACSize:    32,
+		MAC:        strings.Repeat("00", 32),
+		OrigId:     m.Id,
+		Error:      dns.RcodeSuccess,
+	})
+	return m
+}
+
+func TestServeHTTP3RejectsUnsignedTSIGRequiredRequest(t *testing.T) {
+	m := new(dns.Msg)
+	m.SetQuestion("example.com.", dns.TypeA)
+
+	resp := testServerHTTPS3Msg(t, testConfigWithTSIGStatusPluginHTTPS3(), m)
+	if resp.Rcode != dns.RcodeRefused {
+		t.Fatalf("expected REFUSED for unsigned request, got %s", dns.RcodeToString[resp.Rcode])
+	}
+}
+
+func TestServeHTTP3RejectsForgedTSIG(t *testing.T) {
+	resp := testServerHTTPS3Msg(t, testConfigWithTSIGStatusPluginHTTPS3(), forgedTSIGMsgHTTPS3())
+
+	if resp.Rcode != dns.RcodeNotAuth {
+		t.Fatalf("expected NOTAUTH for forged TSIG, got %s", dns.RcodeToString[resp.Rcode])
 	}
 }

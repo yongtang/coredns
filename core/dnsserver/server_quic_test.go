@@ -553,6 +553,73 @@ func TestServerQUIC_ServeQUIC_TSIGBadSigSetsTsigStatus(t *testing.T) {
 	}
 }
 
+func TestServerQUIC_ServeQUICRejectsUpdate(t *testing.T) {
+	handler := new(updateResponsePlugin)
+	config := testConfig("quic", handler)
+	config.TLSConfig = mustMakeQUICServerTLSConfig(t)
+
+	server, err := NewServerQUIC(transport.QUIC+"://127.0.0.1:0", []*Config{config})
+	if err != nil {
+		t.Fatalf("NewServerQUIC() failed: %v", err)
+	}
+
+	pc, err := server.ListenPacket()
+	if err != nil {
+		t.Fatalf("ListenPacket() failed: %v", err)
+	}
+	defer pc.Close()
+
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- server.ServeQUIC()
+	}()
+	defer func() {
+		_ = server.Stop()
+		select {
+		case <-serveErrCh:
+		case <-time.After(2 * time.Second):
+		}
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	conn, err := quic.DialAddr(ctx, pc.LocalAddr().String(), mustMakeQUICClientTLSConfig(), &quic.Config{})
+	if err != nil {
+		t.Fatalf("quic.DialAddr() failed: %v", err)
+	}
+	defer conn.CloseWithError(DoQCodeNoError, "")
+
+	stream, err := conn.OpenStreamSync(ctx)
+	if err != nil {
+		t.Fatalf("OpenStreamSync() failed: %v", err)
+	}
+	if err := stream.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		t.Fatalf("SetReadDeadline() failed: %v", err)
+	}
+	if _, err := stream.Write(AddPrefix(mustPackRFC2136Update(t))); err != nil {
+		t.Fatalf("stream.Write() failed: %v", err)
+	}
+	if err := stream.Close(); err != nil {
+		t.Fatalf("stream.Close() failed: %v", err)
+	}
+
+	_, err = readDOQMessage(stream)
+	if err == nil {
+		t.Fatal("DoQ server accepted an RFC 2136 UPDATE")
+	}
+	var applicationErr *quic.ApplicationError
+	if !errors.As(err, &applicationErr) {
+		t.Fatalf("readDOQMessage() error = %T %v, want QUIC application error", err, err)
+	}
+	if applicationErr.ErrorCode != DoQCodeProtocolError {
+		t.Fatalf("QUIC application error code = %d, want %d", applicationErr.ErrorCode, DoQCodeProtocolError)
+	}
+	if handler.called.Load() {
+		t.Fatal("RFC 2136 UPDATE reached the plugin chain")
+	}
+}
+
 // echoPlugin answers every query with a minimal reply. It is used as a
 // negative control to prove a normal DoQ query is still served after the
 // per-stream read deadline was introduced.

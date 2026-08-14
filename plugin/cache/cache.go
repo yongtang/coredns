@@ -46,6 +46,8 @@ type Cache struct {
 	staleUpTo          time.Duration
 	verifyStale        bool
 	verifyStaleTimeout time.Duration // 0 means wait for upstream until its own timeout (current default).
+	staleTTL           time.Duration // TTL returned with stale responses; 0 preserves the legacy behavior.
+	staleRecheck       time.Duration // Delay after a failed refresh before another attempt; 0 preserves the legacy behavior.
 
 	// Positive/negative zone exceptions
 	pexcept []string
@@ -468,8 +470,8 @@ type verifyStaleResponseWriter struct {
 }
 
 // newVerifyStaleResponseWriter returns a ResponseWriter to be used when verifying stale cache
-// entries. It only forward writes if an entry was successfully refreshed according to RFC8767,
-// section 4 (response is NoError or NXDomain), and ignores any other response.
+// entries. It only forwards matching, complete responses that successfully refresh the data
+// according to RFC8767, section 4 (response is NoError or NXDomain), and ignores other responses.
 func newVerifyStaleResponseWriter(w *ResponseWriter) *verifyStaleResponseWriter {
 	return &verifyStaleResponseWriter{
 		w,
@@ -480,11 +482,18 @@ func newVerifyStaleResponseWriter(w *ResponseWriter) *verifyStaleResponseWriter 
 // WriteMsg implements the dns.ResponseWriter interface.
 func (w *verifyStaleResponseWriter) WriteMsg(res *dns.Msg) error {
 	w.refreshed = false
-	if res.Rcode == dns.RcodeSuccess || res.Rcode == dns.RcodeNameError {
-		w.refreshed = true
-		return w.ResponseWriter.WriteMsg(res) // stores to the cache and send to client
+	if res == nil || res.Truncated || !w.state.Match(res) {
+		return nil
 	}
-	return nil // else discard
+	responseType, _ := response.Typify(res, w.now().UTC())
+	if responseType == response.OtherError || responseType == response.Meta || responseType == response.Update {
+		return nil
+	}
+	if res.Rcode != dns.RcodeSuccess && res.Rcode != dns.RcodeNameError {
+		return nil
+	}
+	w.refreshed = true
+	return w.ResponseWriter.WriteMsg(res) // stores to the cache and sends to the client
 }
 
 const (

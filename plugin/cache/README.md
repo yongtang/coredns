@@ -41,6 +41,7 @@ cache [TTL] [ZONES...] {
     denial CAPACITY [TTL] [MINTTL]
     prefetch AMOUNT [[DURATION] [PERCENTAGE%]]
     serve_stale [DURATION] [immediate [RESPONSE_TTL [FAILURE_RECHECK]] | verify [VERIFY_TIMEOUT [RESPONSE_TTL [FAILURE_RECHECK]]]]
+    serve_stale_policy prefer_positive
     servfail DURATION
     disable success|denial [ZONES...]
     keepttl
@@ -89,6 +90,16 @@ cache [TTL] [ZONES...] {
   intact. The default of `0` preserves the existing retry behavior. RFC 8767 recommends `30s` and says this
   value should not exceed 5 minutes. Examples: `serve_stale 1h immediate 30s 30s` and
   `serve_stale 1h verify 100ms 30s 30s`.
+* `serve_stale_policy` controls cache selection while `serve_stale` is enabled. The only supported policy is
+  `prefer_positive`. It checks the success cache before the denial cache and returns an eligible positive response
+  when it actually answers the question, even when a cached NXDOMAIN, NODATA, SERVFAIL, or NOTIMP response also
+  exists. The positive response must be unexpired or within the configured `serve_stale` duration.
+  The positive response is retained independently when a later NOERROR response does not answer the question (for example, an empty response
+  without SOA, a referral, or a response carrying data only in the additional section), so such a refresh cannot
+  destroy the last-known-good answer. A usable positive refresh replaces the retained answer.
+  The policy is disabled by default because it can mask legitimate record deletion or removal until the positive response exceeds
+  the stale duration or is evicted. In `immediate` mode, the stale positive response is returned first and the cache
+  refreshes in the background. In `verify` mode, only a refreshed positive answer replaces the stale response.
 * `servfail` cache SERVFAIL responses for **DURATION**.  Setting **DURATION** to 0 will disable caching of SERVFAIL
   responses.  If this option is not set, SERVFAIL responses will be cached for 5 seconds.  **DURATION** may not be
   greater than 5 minutes.

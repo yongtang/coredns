@@ -22,6 +22,8 @@ type item struct {
 	Ns                 []dns.RR
 	Extra              []dns.RR
 	wildcard           string
+	answering          bool  // immutable result of validating that this item answers its question.
+	lastKnownGood      *item // answering item retained when a non-answer overwrites this success-cache key.
 
 	origTTL uint32
 	stored  time.Time
@@ -59,6 +61,7 @@ func newItem(m *dns.Msg, now time.Time, d time.Duration) *item {
 		j++
 	}
 	i.Extra = i.Extra[:j]
+	i.answering = answersQuestion(m)
 
 	i.origTTL = uint32(d.Seconds())
 	// Keep the monotonic clock reading so TTL expiry is unaffected by wall
@@ -117,6 +120,20 @@ func (i *item) matches(state request.Request) bool {
 		return true
 	}
 	return false
+}
+
+func (i *item) answersQuestion(state request.Request) bool {
+	return i.answering && i.matches(state)
+}
+
+func (i *item) answeringItem(state request.Request) *item {
+	if i.answersQuestion(state) {
+		return i
+	}
+	if i.lastKnownGood != nil && i.lastKnownGood.answersQuestion(state) {
+		return i.lastKnownGood
+	}
+	return nil
 }
 
 func (i *item) beginRefresh(now time.Time, failureRecheck time.Duration) bool {

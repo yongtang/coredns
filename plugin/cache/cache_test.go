@@ -2008,3 +2008,35 @@ func TestCacheWriteMsgNilResponse(t *testing.T) {
 		t.Error("Expected error when passing nil response to WriteMsg, got nil")
 	}
 }
+
+func TestCacheWriteMsgEmptyQuestion(t *testing.T) {
+	c := New()
+	res := new(dns.Msg)
+	res.Response = true
+	res.Rcode = dns.RcodeSuccess
+
+	t.Run("request", func(t *testing.T) {
+		rec := dnstest.NewRecorder(&test.ResponseWriter{})
+		cw := &ResponseWriter{ResponseWriter: rec, Cache: c}
+
+		if err := cw.WriteMsg(res); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if rec.Msg == nil {
+			t.Fatal("response was not forwarded")
+		}
+		if len(rec.Msg.Question) != 0 {
+			t.Fatalf("expected empty question section, got %d questions", len(rec.Msg.Question))
+		}
+	})
+
+	t.Run("prefetch", func(t *testing.T) {
+		req := new(dns.Msg)
+		req.SetQuestion("example.org.", dns.TypeA)
+		cw := newPrefetchResponseWriter("", req, false, false, c)
+
+		if err := cw.WriteMsg(res); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}

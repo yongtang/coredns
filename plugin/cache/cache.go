@@ -87,6 +87,10 @@ func New() *Cache {
 // Currently we do not cache Truncated, errors zone transfers or dynamic update messages.
 // qname holds the already lowercased qname.
 func key(qname string, m *dns.Msg, t response.Type, do, cd bool) (bool, uint64) {
+	if len(m.Question) == 0 {
+		return false, 0
+	}
+
 	// We don't store truncated responses.
 	if m.Truncated {
 		return false, 0

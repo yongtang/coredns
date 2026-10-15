@@ -26,6 +26,7 @@ func init() {
 	setVersion()
 
 	flag.StringVar(&conf, "conf", "", "Corefile to load (default \""+caddy.DefaultConfigFile+"\")")
+	flag.StringVar(&pluginConfig, "plugin", "", "Plugin order file (optional; uses the compiled-in order by default)")
 	flag.BoolVar(&plugins, "plugins", false, "List installed plugins")
 	flag.StringVar(&caddy.PidFile, "pidfile", "", "Path to write pid file")
 	flag.BoolVar(&version, "version", false, "Show version")
@@ -68,6 +69,10 @@ func Run() {
 	if plugins {
 		fmt.Println(caddy.DescribePlugins())
 		os.Exit(0)
+	}
+
+	if err := configurePluginOrder(pluginConfig); err != nil {
+		mustLogFatal(err)
 	}
 
 	_, err := maxprocs.Set(maxprocs.Logger(log.Printf))
@@ -195,10 +200,11 @@ func setVersion() {
 
 // Flags that control program flow or startup
 var (
-	conf      string
-	version   bool
-	plugins   bool
-	logFormat string
+	conf         string
+	pluginConfig string
+	version      bool
+	plugins      bool
+	logFormat    string
 
 	// LogFlags are initially set to 0 for no extra output
 	LogFlags int
